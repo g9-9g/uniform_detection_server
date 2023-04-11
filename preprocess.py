@@ -41,3 +41,11 @@ def autoresize(path, new_width = 640, new_height = 640):
         return True
 
     return False
+
+def multirotate(multipath=[]):
+    for path in multipath:
+        autorotate(path)
+
+def multiresize(multipath=[]):
+    for path in multipath:
+        autoresize(path)
