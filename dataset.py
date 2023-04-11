@@ -50,7 +50,7 @@ class Uniform:
         })
         return [obj['LinkImage'] for obj in res.json()['LinkImageLst']]
 
-    def filter(self, time, max_level, ):
+    def filter(self, time, max_level, take_high_level_employee):
         if not self.users:
             self.getUser()
 
@@ -58,8 +58,8 @@ class Uniform:
 
         for user in self.users:
             userid = user['UserId']
-            # if user['EmployeeLevel'] < max_level:
-            #     continue
+            if take_high_level_employee and (user['EmployeeLevel'] < max_level):
+                continue
             data = self.getImagePerUser(time, userid)["LinkImageLst"]
 
             for data_img in data:
