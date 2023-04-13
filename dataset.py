@@ -1,6 +1,6 @@
 import requests
 from datetime import datetime
-
+from constant import *
 
 class Uniform:
     ADMIN = {}
@@ -10,7 +10,7 @@ class Uniform:
 
     def __init__(self, url, username, pwd=None, token=None):
         self.URL = url
-        self.TIME_START = "2020-10-01"
+        self.TIME_START = DEFAULT_STARTTIME
         self.TIME_END = datetime.today().strftime("%Y-%m-%d")
         if token:
             self.token = token
@@ -68,4 +68,4 @@ class Uniform:
 
 
 if __name__ == '__main__':
-    unf = Uniform("http://103.121.91.247/ImageCPC1HN", username="checkimage",pwd="123")
+    unf = Uniform(URL, username="checkimage",pwd="123")

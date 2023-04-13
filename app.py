@@ -7,44 +7,23 @@ import face_verification
 
 import dataset
 import preprocess
+import uniform_detection
 
+
+from constant import *
 
 app = Flask(__name__)
 
-# ALLOWED_EXTENSIONS = {'txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif'}
-
-
-# def formatName(user_id="", time="", ):
-#     return user_id + '_' + datetime.strptime(time, '%Y-%m-%d %H:%M:%S').strftime('%Y-%m-%d-%H-%M-%S')
-
-
-# def allowed_file(filename):
-#     return '.' in filename and \
-#            filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
-
-
-URL = "http://103.121.91.247/ImageCPC1HN"
-UPLOAD_FOLDER = 'temp'
 
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
 
-app.secret_key = "secret key"
+app.secret_key = SECRET_KEY
 
-sample = {
-    "token": "",
-    "UserId": "",
-    "UploadImg": [{
-        "URL": "http://103.121.91.247/ImageCPC1HN/File/Download?UserName=checkimage&UserId=0356116111&CallId=9622cd2b-e8c6-485e-9c1c-7c071975ce4d&FileName=3&Token=23C75BD161BD449E9CD4CFE72BC71470",
-        "UploadTime": "2022-05-04 15:45:18"
-        # "name": "",
-    }]
-}
 
-ALLOWED_EXTENSIONS = {'txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif'}
 
-rfa = dataset.RoboflowController(project_name="2yeardataset",
-                                 api_key="mfrbcbsvA7OvqaeeQHac",
+rfa = uniform_detection.RoboflowController(project_name=PROJECT_NAME,
+                                 api_key=API_KEY,
                                  env="Dataset")
 
 
@@ -76,39 +55,41 @@ def predict():
 
         flash('File(s) successfully uploaded')
 
-        # example_id = "0356116111"
+        try:
+            userID = request.form["userid"]
+            dts = dataset.Uniform(url=URL,username=ADMIN["username"],pwd=ADMIN["pwd"])
 
-        userID = request.form["userid"]
-        dts = dataset.Uniform(url=URL,username="checkimage",pwd="123")
-
-        sample_image = face_verification.downloadSample(userID,dts,max_images=3,save_dir=UPLOAD_FOLDER)
-        print(sample_image)
-
-        for img in sample_image:
-            preprocess.autorotate(img)
-
-
-
-        # Preprocessing
-        # if not request['isProcessed']:
-
+            sample_image = face_verification.downloadSample(userID,dts,max_images=3,save_dir=UPLOAD_FOLDER)
+            
+            if not sample_image:
+                raise Exception("NO SAMPLE IMAGE OF USER: ", userID)
+        except Exception as e:
+            print(e)
+        
+        # Initial response
         result_response = {
             "face": True,
-            "predict": None
+            "predict": None,
+            "error" : None
         }
 
+        preprocess.multirotate(sample_image)
+
+        # Face verification
         for img in all_images:
             preprocess.autorotate(img)
-            if not face_verification.deepface(img,sample_image):
+            if not face_verification.deepface(img, sample_image):
                 result_response["face"] = False
                 return result_response
 
             preprocess.autoresize(img, 640, 640)
 
-
-        # preprocess.process_directory(UPLOAD_FOLDER,recursive=True)
-        result_response["predict"] = rfa.predict(8, files=all_images)
-
+        # Uniform detection
+        try:
+            result_response["predict"] = rfa.predict(8, files=all_images)
+        except Exception as err:
+            print(err)
+            result_response["error"] = err
         # save result
         session['result'] = result_response
 

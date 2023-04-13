@@ -1,8 +1,7 @@
 from roboflow import Roboflow
 import os 
 
-
-
+from constant import *
 
 class RoboflowController:
 
@@ -65,7 +64,7 @@ class RoboflowController:
 
 if __name__ == '__main__':
     rfa = RoboflowController(project_name="2yeardataset",
-                             api_key="mfrbcbsvA7OvqaeeQHac",
+                             api_key=os.environ["api_key"],
                              env="Dataset")
 
     from PIL import Image
