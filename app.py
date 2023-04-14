@@ -69,7 +69,7 @@ def predict():
         # Initial response
         result_response = {
             "face": True,
-            "predict": None,
+            "uniform": None,
             "error" : None
         }
 
@@ -86,7 +86,7 @@ def predict():
 
         # Uniform detection
         try:
-            result_response["predict"] = rfa.predict(8, files=all_images)
+            result_response["uniform"] = rfa.predict(8, files=all_images)
         except Exception as err:
             result_response["error"] = err
         # save result
