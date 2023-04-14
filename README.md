@@ -22,9 +22,6 @@ Upload an image of the employee and input their user ID.
 * Face Verification: Verify and output if the detected face in the image is the same person as given user ID.
 * Uniform Detection: Output the coordinate of bag, helmet and shirt with company's logo (if any).
 
-
-##API Guide (work in progress)
+## API Guide (work in progress)
 * POST User/UserLogin - description
 * POST User/GetUserLst - description
-
-
