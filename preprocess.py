@@ -11,9 +11,6 @@ def autorotate(path):
 
         exif = dict(image._getexif().items())
 
-        print(exif[orientation])
-
-        # exif = image._getexif()
         oriented_image = None
         if exif[orientation] == 3:
             oriented_image = image.transpose(Transpose.ROTATE_180)

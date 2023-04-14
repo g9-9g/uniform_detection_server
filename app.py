@@ -88,7 +88,6 @@ def predict():
         try:
             result_response["predict"] = rfa.predict(8, files=all_images)
         except Exception as err:
-            print(err)
             result_response["error"] = err
         # save result
         session['result'] = result_response
