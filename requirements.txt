@@ -4,5 +4,5 @@
 deepface
 python-dotenv
 tensorflow
-Pillow
+Pillow>=9.5.0
 roboflow
