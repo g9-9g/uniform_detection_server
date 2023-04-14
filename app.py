@@ -54,7 +54,14 @@ def predict():
                 all_images.append(os.path.join(UPLOAD_FOLDER, filename))
 
         flash('File(s) successfully uploaded')
-
+        
+        # Initial response
+        result_response = {
+            "face": True,
+            "uniform": None,
+            "error" : None
+        }
+        
         try:
             userID = request.form["userid"]
             dts = dataset.Uniform(url=URL,username=ADMIN["username"],pwd=ADMIN["pwd"])
@@ -66,14 +73,11 @@ def predict():
         except Exception as e:
             print(e)
         
-        # Initial response
-        result_response = {
-            "face": True,
-            "uniform": None,
-            "error" : None
-        }
-
-        preprocess.multirotate(sample_image)
+        try:
+            if not preprocess.multirotate(sample_image):
+                raise Exception("CAN NOT DOWNLOAD SAMPLE IMAGES")
+        except Exception as e:
+            result_response['error'] = e 
 
         # Face verification
         for img in all_images:

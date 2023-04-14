@@ -26,7 +26,6 @@ def autorotate(path):
     except (AttributeError, KeyError, IndexError):
         # cases: image don't have getexif
         return False
-        pass
 
 def autoresize(path, new_width = 640, new_height = 640):
     image = Image.open(path)
@@ -42,7 +41,9 @@ def autoresize(path, new_width = 640, new_height = 640):
 def multirotate(multipath=[]):
     for path in multipath:
         autorotate(path)
+    return True
 
 def multiresize(multipath=[]):
     for path in multipath:
         autoresize(path)
+    return True
