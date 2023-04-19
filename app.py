@@ -4,11 +4,12 @@ from flask import Flask, redirect, render_template, url_for, request, session, j
 from werkzeug.utils import secure_filename
 
 import face_verification
-
+import numpy
 import dataset
 import preprocess
 import uniform_detection
-
+from ultralytics import YOLO
+import cv2
 
 from constant import *
 
@@ -22,9 +23,9 @@ app.secret_key = SECRET_KEY
 
 
 
-rfa = uniform_detection.RoboflowController(project_name=PROJECT_NAME,
-                                 api_key=API_KEY,
-                                 env="Dataset")
+# rfa = uniform_detection.RoboflowController(project_name=PROJECT_NAME,
+#                                  api_key=API_KEY,
+#                                  env="Dataset")
 
 
 def allowed_file(filename):
@@ -61,7 +62,7 @@ def predict():
             "uniform": None,
             "error" : None
         }
-        
+        '''
         try:
             userID = request.form["userid"]
             dts = dataset.Uniform(url=URL,username=ADMIN["username"],pwd=ADMIN["pwd"])
@@ -78,22 +79,26 @@ def predict():
                 raise Exception("CAN NOT DOWNLOAD SAMPLE IMAGES")
         except Exception as e:
             result_response['error'] = e 
-
+        '''
         # Face verification
-        for img in all_images:
-            preprocess.autorotate(img)
-            if not face_verification.deepface(img, sample_image):
-                result_response["face"] = False
-                return result_response
+        # for img in all_images:
+        #     preprocess.autorotate(img)
+        #     # if not face_verification.deepface(img, sample_image):
+        #     #     result_response["face"] = False
+        #     #     return result_response
 
-            preprocess.autoresize(img, 640, 640)
+        #     preprocess.autoresize(img, 640, 640)
 
         # Uniform detection
-        try:
-            result_response["uniform"] = rfa.predict(8, files=all_images)
-        except Exception as err:
-            result_response["error"] = err
-        # save result
+        preprocess.multirotate(all_images)
+        model = YOLO("best.pt")
+        model.predict(all_images, imgsz=640, save = True)
+        # cv2.imshow("pls", result[0].plot())
+        # try:
+        #     result_response["uniform"] = model.predict(all_images, imgsz=640).numpy() #rfa.predict(8, files=all_images)
+        # except Exception as err:
+        #     result_response["error"] = err
+        # # save result
         session['result'] = result_response
 
         redirect('/')
