@@ -62,16 +62,16 @@ class RoboflowController:
 
         return results
 
-if __name__ == '__main__':
-    rfa = RoboflowController(project_name="2yeardataset",
-                             api_key=os.environ["api_key"],
-                             env="Dataset")
+# if __name__ == '__main__':
+#     rfa = RoboflowController(project_name="2yeardataset",
+#                              api_key=os.environ["api_key"],
+#                              env="Dataset")
 
-    from PIL import Image
-    image = Image.open('a.jpg').resize((640, 640))
-    image.save('new.jpg')
+#     from PIL import Image
+#     image = Image.open('a.jpg').resize((640, 640))
+#     image.save('new.jpg')
     
-    print(rfa.predict(5, files=["new.jpg"],
-                      ))
+#     print(rfa.predict(5, files=["new.jpg"],
+#                       ))
 
     # rfa.upload(image_dir=[{"dir":'new.jpg'}])
