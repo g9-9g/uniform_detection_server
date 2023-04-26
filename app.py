@@ -4,10 +4,10 @@ from flask import Flask, redirect, render_template, url_for, request, session, j
 from werkzeug.utils import secure_filename
 
 import face_verification
-import numpy
+# import numpy
 import dataset
 import preprocess
-import uniform_detection
+# import uniform_detection
 from ultralytics import YOLO
 import cv2
 
@@ -62,24 +62,26 @@ def predict():
             "uniform": None,
             "error" : None
         }
-        '''
-        try:
-            userID = request.form["userid"]
-            dts = dataset.Uniform(url=URL,username=ADMIN["username"],pwd=ADMIN["pwd"])
+        # try:
+        #     userID = request.form["userid"]
+        #     dts = dataset.Uniform(url=URL,username=ADMIN["username"],pwd=ADMIN["pwd"])
 
-            sample_image = face_verification.downloadSample(userID,dts,max_images=3,save_dir=UPLOAD_FOLDER)
+        #     sample_image = face_verification.downloadSample(userID,dts,max_images=3,save_dir=UPLOAD_FOLDER)
             
-            if not sample_image:
-                raise Exception("NO SAMPLE IMAGE OF USER: ", userID)
-        except Exception as e:
-            print(e)
+        #     if not sample_image:
+        #         raise Exception("NO SAMPLE IMAGE OF USER: ", userID)
+        # except Exception as e:
+        #     print(e)
         
-        try:
-            if not preprocess.multirotate(sample_image):
-                raise Exception("CAN NOT DOWNLOAD SAMPLE IMAGES")
-        except Exception as e:
-            result_response['error'] = e 
-        '''
+        # try:
+        #     if not preprocess.multirotate(sample_image):
+        #         raise Exception("CAN NOT DOWNLOAD SAMPLE IMAGES")
+        # except Exception as e:
+        #     result_response['error'] = e 
+        # Preprocess
+        preprocess.multirotate(all_images)
+        # preprocess.multiresize(all_images)
+
         # Face verification
         # for img in all_images:
         #     preprocess.autorotate(img)
@@ -90,15 +92,10 @@ def predict():
         #     preprocess.autoresize(img, 640, 640)
 
         # Uniform detection
-        preprocess.multirotate(all_images)
         model = YOLO("best.pt")
-        model.predict(all_images, imgsz=640, save = True)
-        # cv2.imshow("pls", result[0].plot())
-        # try:
-        #     result_response["uniform"] = model.predict(all_images, imgsz=640).numpy() #rfa.predict(8, files=all_images)
-        # except Exception as err:
-        #     result_response["error"] = err
-        # # save result
+        result = model.predict(all_images, imgsz = 640, save = True)
+        boxes = result[0].boxes
+        print(boxes.conf)
         session['result'] = result_response
 
         redirect('/')
