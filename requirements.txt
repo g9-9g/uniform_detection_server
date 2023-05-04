@@ -6,3 +6,4 @@ python-dotenv
 tensorflow
 Pillow>=9.5.0
 roboflow
+facenet_pytorch
