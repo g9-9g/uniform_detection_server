@@ -1,25 +1,36 @@
-<!doctype html>
-<title>Upload test</title>
-<h2>Select file(s) to upload</h2>
-<p>
-	{% with messages = get_flashed_messages() %}
-	  {% if messages %}
-		<ul class=flashes>
-		{% for message in messages %}
-		  <li>{{ message }}</li>
-		{% endfor %}
-		</ul>
-	  {% endif %}
-	{% endwith %}
-</p>
-<form method="post" action="/" enctype="multipart/form-data">
-    <dl>
-		<p>
-			<input type="file" name="files[]" multiple="false" autocomplete="off" required>
-			<input type="text" name="userid" autocomplete="off" required>
-		</p>
-    </dl>
-    <p>
-		<input type="submit" value="Submit">
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Upload test</title>
+</head>
+<body>
+	<h2>Select file(s) to upload</h2>
+	<p>
+		{% with messages = get_flashed_messages() %}
+		  {% if messages %}
+			<ul class=flashes>
+			{% for message in messages %}
+			  <li>{{ message }}</li>
+			{% endfor %}
+			</ul>
+		  {% endif %}
+		{% endwith %}
 	</p>
-</form>
+	<form method="post" action="/" enctype="multipart/form-data">
+		<dl id="users_holder" name="userid[]">
+			<dt>
+				<input type="file" name="files[]" multiple="false" autocomplete="off" required>
+				<textarea name="textlist" id="textlist" rows="1" cols="40"></textarea>
+			</dt>
+		</dl>
+		<p>
+			<input type="submit" value="Submit">
+		</p>
+	
+
+	</form>
+</body>
+</html>

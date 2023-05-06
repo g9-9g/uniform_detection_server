@@ -1,7 +1,8 @@
 import requests
 from datetime import datetime
 from constant import *
-
+from PIL import Image
+import io
 class Uniform:
     ADMIN = {}
     users = {}
@@ -50,42 +51,41 @@ class Uniform:
         })
         return [obj['LinkImage'] for obj in res.json()['LinkImageLst']]
 
-    def filter(self, time, max_level, take_high_level_employee):
-        if not self.users:
-            self.getUser()
+    # def filter(self, time, max_level, take_high_level_employee):
+    #     if not self.users:
+    #         self.getUser()
 
-        results = []
+    #     results = []
 
-        for user in self.users:
-            userid = user['UserId']
-            if take_high_level_employee and (user['EmployeeLevel'] < max_level):
-                continue
-            data = self.getImagePerUser(time, userid)["LinkImageLst"]
+    #     for user in self.users:
+    #         userid = user['UserId']
+    #         if take_high_level_employee and (user['EmployeeLevel'] < max_level):
+    #             continue
+    #         data = self.getImagePerUser(time, userid)["LinkImageLst"]
 
-            for data_img in data:
-                img_name = formatName(userid, data_img['TimeImage'])
-                results.append({"name": img_name, "url": data_img['LinkImage']})
+    #         for data_img in data:
+    #             img_name = formatName(userid, data_img['TimeImage'])
+    #             results.append({"name": img_name, "url": data_img['LinkImage']})
 
-    # def downloadSample(user_id, dataset, max_images,save_dir, time=(TIME_START, TIME_END), random=False):
-    # if not save_dir:
-    #     raise Exception("No output folder")
+    def downloadSample(self, user_id, max_images,save_dir, random=False):
+        if not save_dir:
+            raise Exception("No output folder")
 
-    # all_images = dataset.getImagePerUser(user_id, time)
-    # known_images = []
-    # cnt = 0
-    # for image in all_images:
-    #     if cnt >= max_images:
-    #         break
-    #     try:
-    #         response = requests.get(image, allow_redirects=True)
-    #         img = Image.open(io.BytesIO(response.content))
-    #         img.save(os.path.join(save_dir, 'a{}.jpg'.format(cnt)))
-    #         img.close()
-    #     finally:
-    #         known_images.append(os.path.join(save_dir, 'a{}.jpg'.format(cnt)))
-    #         cnt += 1
+        all_images = self.getImagePerUser(user_id)
+        known_images = []
+        cnt = 0
+        for image in all_images:
+            if cnt >= max_images:
+                break
+            try:
+                response = requests.get(image, allow_redirects=True)
+                with open(os.path.join(save_dir, '{}_{}.jpg'.format(user_id, cnt)), 'wb') as f:
+                    f.write(response.content)
+            finally:
+                known_images.append(os.path.join(save_dir, '{}_{}.jpg'.format(user_id, cnt)))
+                cnt += 1
 
-    # return known_images
+        return known_images
 
 
 if __name__ == '__main__':

@@ -25,6 +25,7 @@ def autorotate(path):
         return True
     except (AttributeError, KeyError, IndexError):
         # cases: image don't have getexif
+        print("No EXIF data found")
         return False
 
 def autoresize(path, new_width = 640, new_height = 640):

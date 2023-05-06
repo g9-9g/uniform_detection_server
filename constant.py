@@ -11,7 +11,7 @@ if not os.environ['UPLOAD_FOLDER']:
     os.environ['UPLOAD_FOLDER'] = 'temp'
 
 UPLOAD_FOLDER= os.environ['UPLOAD_FOLDER']
-DEFAULT_STARTTIME = "2020-10-01"
+DEFAULT_STARTTIME = "2021-05-05"
 ADMIN = {"username": os.environ["admin_username"], "pwd": os.environ["admin_pwd"]}
 
 

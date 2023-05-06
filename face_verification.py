@@ -3,9 +3,8 @@ import torch
 import numpy as np
 import pandas as pd
 import os
-import cv2
-import preprocess
 from PIL import Image
+import preprocess
 workers = 0 if os.name == 'nt' else 4
 
 # Determine if an nvidia GPU is available
@@ -35,17 +34,12 @@ def detect_face(img):
         print("No face detected")
         return None
     
-def detect_faces(folder_name):
+def detect_faces(files):
     aligned = []
-    names = []
-    for files in os.walk(folder_name, topdown = True):
-        for path in files:
-            preprocess.autorotate(folder_name + path)
-            preprocess.autoresize(folder_name + path)
-            img = cv2.imread(folder_name + path)
-            aligned.append(detect_face(img))
-            names.append(path)
-    return aligned, names
+    for path in files:
+        img = Image.open(path)
+        aligned.append(detect_face(img))
+    return aligned
 
 # #### Calculate image embeddings
 # 
@@ -57,11 +51,12 @@ def calculate_embeddings(aligned):
     embeddings = resnet(aligned).detach().cpu()
     return embeddings
 
-# Print distance matrix for classes
-def compare_faces(folder_name):
-    aligned, names = detect_faces(folder_name)
-    embeddings = calculate_embeddings(aligned) 
-    dists = [[(e1 - e2).norm().item() for e2 in embeddings] for e1 in embeddings]
-    print(pd.DataFrame(dists, columns=names, index=names))
+# # Print distance matrix for classes
+# def compare_faces(unknown_faces):
+#     aligned, names = detect_faces(files)
+#     embeddings = calculate_embeddings(aligned)  
+#     dists = [[(e1 - e2).norm().item() for e2 in embeddings] for e1 in embeddings]
+#     print(pd.DataFrame(dists, columns=names, index=names))
+
 
 

@@ -1,15 +1,13 @@
 import os
+import argparse
 
 from flask import Flask, redirect, render_template, url_for, request, session, jsonify, json, flash
 from werkzeug.utils import secure_filename
 
 import face_verification
-# import numpy
 import dataset
 import preprocess
-# import uniform_detection
 from ultralytics import YOLO
-import cv2
 
 from constant import *
 
@@ -57,45 +55,76 @@ def predict():
         flash('File(s) successfully uploaded')
         
         # Initial response
-        result_response = {
-            "face": True,
-            "uniform": None,
-            "error" : None
-        }
-        # try:
-        #     userID = request.form["userid"]
-        #     dts = dataset.Uniform(url=URL,username=ADMIN["username"],pwd=ADMIN["pwd"])
+        result_response = {}
+        # result of each user should include user_id, face, uniform
 
-        #     sample_image = face_verification.downloadSample(userID,dts,max_images=3,save_dir=UPLOAD_FOLDER)
-            
-        #     if not sample_image:
-        #         raise Exception("NO SAMPLE IMAGE OF USER: ", userID)
-        # except Exception as e:
-        #     print(e)
+        # Sample Image
+        try:
+            userIDs = request.form['textlist'].split(' ')
+            if len(userIDs) != len(all_images):
+                raise Exception("Number of images and userIDs are not equal")
+        except Exception as e:
+            print(e)
+
+        dts = dataset.Uniform(url=URL,username=ADMIN["username"],pwd=ADMIN["pwd"])
+        sample_embeddings = []
+        filtered_userIDs = []
+        filtered_images = []
+        for (userID, image) in zip(userIDs, all_images):
+            sample_img = dts.downloadSample(userID, max_images=1,save_dir=UPLOAD_FOLDER)
+            preprocess.multirotate(sample_img)
+            preprocess.multiresize(sample_img)
+            known_aligned = face_verification.detect_faces(sample_img)
+            known_aligned = list(filter(lambda item: item is not None, known_aligned))
+            if not known_aligned: 
+                result_response[userID] = {'face': False, 'uniform': None}
+                # raise Exception("NO FACE DETECTED IN SAMPLE IMAGES OF USER: ", userID)
+                print("NO FACE DETECTED IN SAMPLE IMAGES OF USER: ", userID)
+            else:
+                known_embeddings = face_verification.calculate_embeddings(known_aligned)
+                sample_embeddings.append(known_embeddings)
+                filtered_userIDs.append(userID)
+                filtered_images.append(image)
         
-        # try:
-        #     if not preprocess.multirotate(sample_image):
-        #         raise Exception("CAN NOT DOWNLOAD SAMPLE IMAGES")
-        # except Exception as e:
-        #     result_response['error'] = e 
         # Preprocess
-        preprocess.multirotate(all_images)
-        # preprocess.multiresize(all_images)
+        preprocess.multirotate(filtered_images)
+        preprocess.multiresize(filtered_images)
 
-        # Face verification
-        # for img in all_images:
-        #     preprocess.autorotate(img)
-        #     # if not face_verification.deepface(img, sample_image):
-        #     #     result_response["face"] = False
-        #     #     return result_response
+        # Filter out images with no face detected
+        unknown_aligned = face_verification.detect_faces(filtered_images)
+        filtered_filtered_userIDs = []
+        filtered_unknown_aligned = []
+        filtered_sample_embeddings = []
+        filtered_filtered_images = []
 
-        #     preprocess.autoresize(img, 640, 640)
+        for (userID, align, se, img) in zip(filtered_userIDs, unknown_aligned, sample_embeddings, filtered_images):
+            if align is None:
+                result_response[userID] = {'face': False, 'uniform': None}
+                print("NO FACE DETECTED IN IMAGE OF USER: ", userID)
+            else:
+                filtered_filtered_userIDs.append(userID)
+                filtered_unknown_aligned.append(align)
+                filtered_sample_embeddings.append(se)
+                filtered_filtered_images.append(img)
+
+        filtered_userIDs = filtered_filtered_userIDs
+        filtered_images = filtered_filtered_images
+        sample_embeddings = filtered_sample_embeddings
+        unknown_embeddings = face_verification.calculate_embeddings(filtered_unknown_aligned)  
 
         # Uniform detection
-        model = YOLO("best.pt")
-        result = model.predict(all_images, imgsz = 640, save = True)
-        boxes = result[0].boxes
-        print(boxes.conf)
+        results = model(filtered_images)
+        print(results)
+        # print(results.probs)  # cls prob, (num_class, )
+
+
+        # threshold = 0.71
+
+        # # Face verification
+        # for (userID, unknown_embedding, sample_embedding) in zip(filtered_userIDs, unknown_embeddings, sample_embeddings):
+        #     avg_dist = sum([(unknown_embedding - se).norm().item() for se in sample_embedding])/len(sample_embedding)
+        #     print("distance = ", avg_dist)
+            
         session['result'] = result_response
 
         redirect('/')
@@ -134,4 +163,9 @@ with app.test_request_context():
     print("hello")
 
 if __name__ == '__main__':
-    app.run()
+    parser = argparse.ArgumentParser(
+        description="Flask app exposing yolov8 models")
+    parser.add_argument("--port", default=5000, type=int, help="port number")
+    args = parser.parse_args()
+    model = YOLO("best.pt")
+    app.run(host="127.0.0.1", port=args.port)
