@@ -114,7 +114,7 @@ def predict():
 
         # Uniform detection
         results = model(filtered_images)
-        print(results)
+        # print(results)
         # print(results.probs)  # cls prob, (num_class, )
 
 
