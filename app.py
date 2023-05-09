@@ -64,79 +64,87 @@ def predict():
             userIDs = request.form['textlist'].split(' ')
             if len(userIDs) != len(all_images):
                 raise Exception("Number of images and userIDs are not equal")
+
+            dts = dataset.Uniform(url=URL,username=ADMIN["username"],pwd=ADMIN["pwd"])
+            test_data = dict(zip(userIDs, all_images))
+            sample_embeddings = {}
+
+            for userID in userIDs:
+                sample_img = dts.downloadSample(userID, max_images=1,save_dir=UPLOAD_FOLDER)
+                preprocess.multirotate(sample_img)
+                preprocess.multiresize(sample_img)
+                known_aligned = face_verification.detect_faces(sample_img)
+                known_aligned = list(filter(lambda item: item is not None, known_aligned))
+                if not known_aligned: 
+                    result_response[userID] = {'face': False, 'uniform': None}
+                    # raise Exception("NO FACE DETECTED IN SAMPLE IMAGES OF USER: ", userID)
+                    print("NO FACE DETECTED IN SAMPLE IMAGES OF USER: ", userID)
+                    del test_data[userID]
+                else:
+                    known_embeddings = face_verification.calculate_embeddings(known_aligned)
+                    sample_embeddings[userID] = known_embeddings
+            
+            # Preprocess
+            if not test_data:
+                raise Exception("NO FACE DETECTED IN SAMPLE IMAGES OF ALL USERS")
+            
+            filtered_images = list(test_data.values())
+            preprocess.multirotate(filtered_images)
+            preprocess.multiresize(filtered_images)
+
+            # Filter out images with no face detected
+            unknown_aligned = face_verification.detect_faces(filtered_images)
+            filtered_aligned = []
+            userIDs = list(test_data.keys()).copy()
+            for (userID, align) in zip(userIDs, unknown_aligned):
+                if align is None:
+                    result_response[userID] = {'face': False, 'uniform': None}
+                    print("NO FACE DETECTED IN IMAGE OF USER: ", userID)
+                    del test_data[userID]
+                    del sample_embeddings[userID]   
+                else:
+                    filtered_aligned.append(align)
+
+            if not test_data:
+                raise Exception("NO FACE DETECTED IN TEST IMAGES OF ALL USERS")
+            
+            unknown_embeddings = face_verification.calculate_embeddings(filtered_aligned) 
+            userIDs = test_data.keys()
+            filtered_images = list(test_data.values())
+
+            # Face verification
+            threshold = 0.71 
+            for i, userID in enumerate(userIDs):
+                unknown_embedding = unknown_embeddings[i]
+                # test_data[userID] = unknown_embedding
+                sample_embedding = sample_embeddings[userID]
+                avg_dist = np.mean([(unknown_embedding - se).norm().item() for se in sample_embedding])
+                print("distance = ", avg_dist)
+                if avg_dist > threshold:
+                    result_response[userID] = {'face': False, 'uniform': None}
+                else:
+                    result_response[userID] = {'face': True, 'uniform': None}
+
+            # Uniform detection
+            class_names = {
+                0: "ao",
+                1: "balo",
+                2: "mu"
+            }
+            results = model(filtered_images)
+            for result in results:
+                prediction = result.boxes.cpu().numpy()
+                cl = prediction.cls.copy()
+                # cl = cl.tolist()
+                # print(cl)
+                result_response[userID]['uniform'] = [class_names[i] for i in cl]
+            # print(results)
+            # print(results.probs)  # cls prob, (num_class, )
+
         except Exception as e:
             print(e)
 
-        dts = dataset.Uniform(url=URL,username=ADMIN["username"],pwd=ADMIN["pwd"])
-        test_data = dict(zip(userIDs, all_images))
-        sample_embeddings = {}
-
-        for userID in userIDs:
-            sample_img = dts.downloadSample(userID, max_images=1,save_dir=UPLOAD_FOLDER)
-            preprocess.multirotate(sample_img)
-            preprocess.multiresize(sample_img)
-            known_aligned = face_verification.detect_faces(sample_img)
-            known_aligned = list(filter(lambda item: item is not None, known_aligned))
-            if not known_aligned: 
-                result_response[userID] = {'face': False, 'uniform': None}
-                # raise Exception("NO FACE DETECTED IN SAMPLE IMAGES OF USER: ", userID)
-                print("NO FACE DETECTED IN SAMPLE IMAGES OF USER: ", userID)
-                del test_data[userID]
-            else:
-                known_embeddings = face_verification.calculate_embeddings(known_aligned)
-                sample_embeddings[userID] = known_embeddings
-        
-        # Preprocess
-        filtered_images = list(test_data.values())
-        preprocess.multirotate(filtered_images)
-        preprocess.multiresize(filtered_images)
-
-        # Filter out images with no face detected
-        unknown_aligned = face_verification.detect_faces(filtered_images)
-        filtered_aligned = []
-        userIDs = list(test_data.keys()).copy()
-        for (userID, align) in zip(userIDs, unknown_aligned):
-            if align is None:
-                result_response[userID] = {'face': False, 'uniform': None}
-                print("NO FACE DETECTED IN IMAGE OF USER: ", userID)
-                del test_data[userID]
-                del sample_embeddings[userID]   
-            else:
-                filtered_aligned.append(align)
-
-        unknown_embeddings = face_verification.calculate_embeddings(filtered_aligned) 
-        userIDs = test_data.keys()
-        filtered_images = list(test_data.values())
-
-        # Face verification
-        # threshold = 0.71 
-        # for i, userID in enumerate(userIDs):
-        #     unknown_embedding = unknown_embeddings[i]
-        #     # test_data[userID] = unknown_embedding
-        #     sample_embedding = sample_embeddings[userID]
-        #     avg_dist = np.mean([(unknown_embedding - se).norm().item() for se in sample_embedding])
-        #     print("distance = ", avg_dist)
-        #     if avg_dist > threshold:
-        #         result_response[userID] = {'face': False, 'uniform': None}
-        #     else:
-        #         result_response[userID] = {'face': True, 'uniform': None}
-
-        # Uniform detection
-        class_names = {
-            0: "ao",
-            1: "balo",
-            2: "mu"
-        }
-        results = model(filtered_images)
-        for result in results:
-            prediction = result.boxes.cpu().numpy()
-            print(prediction)
-            # cls = prediction.cls().tolist()
-            # result_response[userID]['uniform'] = [class_names[i] for i in cls]
-        # print(results)
-        # print(results.probs)  # cls prob, (num_class, )
-    
-            
+        print(result_response)
         session['result'] = result_response
 
         redirect('/')
