@@ -46,6 +46,7 @@ def detect_faces(files):
 # MTCNN will return images of faces all the same size, enabling easy batch processing with the Resnet recognition module. Here, since we only have a few images, we build a single batch and perform inference on it. 
 # 
 # For real datasets, code should be modified to control batch sizes being passed to the Resnet, particularly if being processed on a GPU. For repeated testing, it is best to separate face detection (using MTCNN) from embedding or classification (using InceptionResnetV1), as calculation of cropped faces or bounding boxes can then be performed a single time and detected faces saved for future use.
+
 def calculate_embeddings(aligned):
     aligned = torch.stack(aligned).to(device)
     embeddings = resnet(aligned).detach().cpu()
