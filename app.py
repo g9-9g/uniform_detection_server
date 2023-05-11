@@ -70,20 +70,23 @@ def predict():
             sample_embeddings = {}
 
             for userID in userIDs:
-                sample_img = dts.downloadSample(userID, max_images=1,save_dir=UPLOAD_FOLDER)
-                preprocess.multirotate(sample_img)
-                preprocess.multiresize(sample_img)
-                known_aligned = face_verification.detect_faces(sample_img)
-                known_aligned = list(filter(lambda item: item is not None, known_aligned))
-                if not known_aligned: 
-                    result_response[userID] = {'face': False, 'uniform': None}
-                    # raise Exception("NO FACE DETECTED IN SAMPLE IMAGES OF USER: ", userID)
-                    print("NO FACE DETECTED IN SAMPLE IMAGES OF USER: ", userID)
-                    del test_data[userID]
+                if not os.path.exists(os.path.join(UPLOAD_FOLDER, "stored_embeddings", userID)):
+                    sample_img = dts.downloadSample(userID, max_images=1,save_dir=UPLOAD_FOLDER)
+                    preprocess.multirotate(sample_img)
+                    preprocess.multiresize(sample_img)
+                    known_aligned = face_verification.detect_faces(sample_img)
+                    known_aligned = list(filter(lambda item: item is not None, known_aligned))
+                    if not known_aligned: 
+                        result_response[userID] = {'face': False, 'uniform': None}
+                        # raise Exception("NO FACE DETECTED IN SAMPLE IMAGES OF USER: ", userID)
+                        print("NO FACE DETECTED IN SAMPLE IMAGES OF USER: ", userID)
+                        del test_data[userID]
+                    else:
+                        known_embeddings = face_verification.calculate_embeddings(known_aligned)
+                        print(type(known_embeddings))
+                        sample_embeddings[userID] = known_embeddings
                 else:
-                    known_embeddings = face_verification.calculate_embeddings(known_aligned)
-                    sample_embeddings[userID] = known_embeddings
-            
+                    sample_embeddings[userID] = np.load(os.path.join(UPLOAD_FOLDER, "stored_embeddings", userID))
             # Preprocess
             if not test_data:
                 raise Exception("NO FACE DETECTED IN SAMPLE IMAGES OF ALL USERS")
