@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 import os
 from PIL import Image
-import preprocess
+import math
 workers = 0 if os.name == 'nt' else 4
 
 # Determine if an nvidia GPU is available
@@ -52,12 +52,22 @@ def calculate_embeddings(aligned):
     embeddings = resnet(aligned).detach().cpu()
     return embeddings
 
-# # Print distance matrix for classes
-# def compare_faces(unknown_faces):
-#     aligned, names = detect_faces(files)
-#     embeddings = calculate_embeddings(aligned)  
-#     dists = [[(e1 - e2).norm().item() for e2 in embeddings] for e1 in embeddings]
-#     print(pd.DataFrame(dists, columns=names, index=names))
+def distance(embeddings1, embeddings2, distance_metric=0):
+    embeddings1 = embeddings1.cpu().numpy()
+    embeddings2 = embeddings2.cpu().numpy() 
+    if distance_metric==0:
+        # Euclidian distance
+        return np.linalg.norm(embeddings1 - embeddings2)
+    elif distance_metric==1:
+        # Distance based on cosine similarity
+        dot = np.sum(np.multiply(embeddings1, embeddings2), axis=0)
+        norm = np.linalg.norm(embeddings1, axis=0) * np.linalg.norm(embeddings2, axis=0)
+        similarity = dot / norm
+        dist = np.arccos(similarity) / math.pi
+    else:
+        raise 'Undefined distance metric %d' % distance_metric
+
+    return dist
 
 
 

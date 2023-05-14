@@ -71,7 +71,7 @@ def predict():
 
             for userID in userIDs:
                 if not os.path.exists(os.path.join(UPLOAD_FOLDER, "stored_embeddings", userID)):
-                    sample_img = dts.downloadSample(userID, max_images=1,save_dir=UPLOAD_FOLDER)
+                    sample_img = dts.downloadSample(userID, max_images=3,save_dir=UPLOAD_FOLDER)
                     preprocess.multirotate(sample_img)
                     preprocess.multiresize(sample_img)
                     known_aligned = face_verification.detect_faces(sample_img)
@@ -83,9 +83,9 @@ def predict():
                         del test_data[userID]
                     else:
                         known_embeddings = face_verification.calculate_embeddings(known_aligned)
-                        print(type(known_embeddings))
                         sample_embeddings[userID] = known_embeddings
                 else:
+                    # load stored embeddings of type torch.tensor
                     sample_embeddings[userID] = np.load(os.path.join(UPLOAD_FOLDER, "stored_embeddings", userID))
             # Preprocess
             if not test_data:
@@ -111,7 +111,7 @@ def predict():
             if not test_data:
                 raise Exception("NO FACE DETECTED IN TEST IMAGES OF ALL USERS")
             
-            unknown_embeddings = face_verification.calculate_embeddings(filtered_aligned) 
+            unknown_embeddings = face_verification.calculate_embeddings(filtered_aligned)
             userIDs = test_data.keys()
             filtered_images = list(test_data.values())
 
@@ -121,6 +121,8 @@ def predict():
                 unknown_embedding = unknown_embeddings[i]
                 # test_data[userID] = unknown_embedding
                 sample_embedding = sample_embeddings[userID]
+                
+                # avg_dist = np.mean([face_verification.distance(unknown_embedding, se, distance_metric=1) for se in sample_embedding])
                 avg_dist = np.mean([(unknown_embedding - se).norm().item() for se in sample_embedding])
                 print("distance = ", avg_dist)
                 if avg_dist > threshold:
