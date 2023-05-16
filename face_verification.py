@@ -1,7 +1,6 @@
 from facenet_pytorch import MTCNN, InceptionResnetV1
 import torch
 import numpy as np
-import pandas as pd
 import os
 from PIL import Image
 import math
@@ -28,10 +27,10 @@ resnet = InceptionResnetV1(pretrained='vggface2').eval().to(device)
 def detect_face(img):
     x_aligned, prob = mtcnn(img, return_prob=True)
     if x_aligned is not None:
-        print('Face detected with probability: {:8f}'.format(prob))
+        # print('Face detected with probability: {:8f}'.format(prob))
         return x_aligned
     else:
-        print("No face detected")
+        # print("No face detected")
         return None
     
 def detect_faces(files):
@@ -49,15 +48,15 @@ def detect_faces(files):
 
 def calculate_embeddings(aligned):
     aligned = torch.stack(aligned).to(device)
-    embeddings = resnet(aligned).detach().cpu()
+    embeddings = resnet(aligned).detach().cpu().numpy()
     return embeddings
 
 def distance(embeddings1, embeddings2, distance_metric=0):
-    embeddings1 = embeddings1.cpu().numpy()
-    embeddings2 = embeddings2.cpu().numpy() 
+    # embeddings1 = embeddings1.cpu().numpy()
+    # embeddings2 = embeddings2.cpu().numpy() 
     if distance_metric==0:
         # Euclidian distance
-        return np.linalg.norm(embeddings1 - embeddings2)
+        dist = np.linalg.norm(embeddings1 - embeddings2)
     elif distance_metric==1:
         # Distance based on cosine similarity
         dot = np.sum(np.multiply(embeddings1, embeddings2), axis=0)
@@ -66,7 +65,6 @@ def distance(embeddings1, embeddings2, distance_metric=0):
         dist = np.arccos(similarity) / math.pi
     else:
         raise 'Undefined distance metric %d' % distance_metric
-
     return dist
 
 

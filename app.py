@@ -70,7 +70,7 @@ def predict():
             sample_embeddings = {}
 
             for userID in userIDs:
-                if not os.path.exists(os.path.join(UPLOAD_FOLDER, "stored_embeddings", userID)):
+                if (not os.path.exists(os.path.join(DATASET_FOLDER, userID))) or (not os.listdir(os.path.join(DATASET_FOLDER, userID))):
                     sample_img = dts.downloadSample(userID, max_images=3,save_dir=UPLOAD_FOLDER)
                     preprocess.multirotate(sample_img)
                     preprocess.multiresize(sample_img)
@@ -78,15 +78,17 @@ def predict():
                     known_aligned = list(filter(lambda item: item is not None, known_aligned))
                     if not known_aligned: 
                         result_response[userID] = {'face': False, 'uniform': None}
-                        # raise Exception("NO FACE DETECTED IN SAMPLE IMAGES OF USER: ", userID)
                         print("NO FACE DETECTED IN SAMPLE IMAGES OF USER: ", userID)
                         del test_data[userID]
                     else:
                         known_embeddings = face_verification.calculate_embeddings(known_aligned)
                         sample_embeddings[userID] = known_embeddings
+                        if not os.path.exists(os.path.join(DATASET_FOLDER, userID)):
+                            os.makedirs(os.path.join(DATASET_FOLDER, userID), exist_ok=True)
+                        np.save(os.path.join(DATASET_FOLDER, userID, userID + ".npy"), known_embeddings)
                 else:
-                    # load stored embeddings of type torch.tensor
-                    sample_embeddings[userID] = np.load(os.path.join(UPLOAD_FOLDER, "stored_embeddings", userID))
+                    sample_embeddings[userID] = np.load(os.path.join(DATASET_FOLDER, userID, userID + ".npy"))
+
             # Preprocess
             if not test_data:
                 raise Exception("NO FACE DETECTED IN SAMPLE IMAGES OF ALL USERS")
@@ -122,9 +124,9 @@ def predict():
                 # test_data[userID] = unknown_embedding
                 sample_embedding = sample_embeddings[userID]
                 
-                # avg_dist = np.mean([face_verification.distance(unknown_embedding, se, distance_metric=1) for se in sample_embedding])
-                avg_dist = np.mean([(unknown_embedding - se).norm().item() for se in sample_embedding])
-                print("distance = ", avg_dist)
+                avg_dist = np.mean([face_verification.distance(unknown_embedding, se) for se in sample_embedding])
+                # avg_dist = np.mean([(unknown_embedding - se).norm().item() for se in sample_embedding])
+                print("avg_distance = ", avg_dist)
                 if avg_dist > threshold:
                     result_response[userID] = {'face': False, 'uniform': None}
                 else:
@@ -140,11 +142,7 @@ def predict():
             for result in results:
                 prediction = result.boxes.cpu().numpy()
                 cl = prediction.cls.copy()
-                # cl = cl.tolist()
-                # print(cl)
                 result_response[userID]['uniform'] = [class_names[i] for i in cl]
-            # print(results)
-            # print(results.probs)  # cls prob, (num_class, )
 
         except Exception as e:
             print(e)
