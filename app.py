@@ -64,7 +64,6 @@ def predict():
             userIDs = request.form['textlist'].split(' ')
             if len(userIDs) != len(all_images):
                 raise Exception("Number of images and userIDs are not equal")
-
             dts = dataset.Uniform(url=URL,username=ADMIN["username"],pwd=ADMIN["pwd"])
             test_data = dict(zip(userIDs, all_images))
             sample_embeddings = {}
@@ -72,8 +71,7 @@ def predict():
             for userID in userIDs:
                 if (not os.path.exists(os.path.join(DATASET_FOLDER, userID))) or (not os.listdir(os.path.join(DATASET_FOLDER, userID))):
                     sample_img = dts.downloadSample(userID, max_images=3,save_dir=UPLOAD_FOLDER)
-                    preprocess.multirotate(sample_img)
-                    preprocess.multiresize(sample_img)
+                    preprocess.process_images(sample_img)
                     known_aligned = face_verification.detect_faces(sample_img)
                     known_aligned = list(filter(lambda item: item is not None, known_aligned))
                     if not known_aligned: 
@@ -94,8 +92,7 @@ def predict():
                 raise Exception("NO FACE DETECTED IN SAMPLE IMAGES OF ALL USERS")
             
             filtered_images = list(test_data.values())
-            preprocess.multirotate(filtered_images)
-            preprocess.multiresize(filtered_images)
+            preprocess.process_images(filtered_images)
 
             # Filter out images with no face detected
             unknown_aligned = face_verification.detect_faces(filtered_images)
@@ -125,7 +122,6 @@ def predict():
                 sample_embedding = sample_embeddings[userID]
                 
                 avg_dist = np.mean([face_verification.distance(unknown_embedding, se) for se in sample_embedding])
-                # avg_dist = np.mean([(unknown_embedding - se).norm().item() for se in sample_embedding])
                 print("avg_distance = ", avg_dist)
                 if avg_dist > threshold:
                     result_response[userID] = {'face': False, 'uniform': None}

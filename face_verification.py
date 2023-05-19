@@ -27,10 +27,10 @@ resnet = InceptionResnetV1(pretrained='vggface2').eval().to(device)
 def detect_face(img):
     x_aligned, prob = mtcnn(img, return_prob=True)
     if x_aligned is not None:
-        # print('Face detected with probability: {:8f}'.format(prob))
+        print('Face detected with probability: {:8f}'.format(prob))
         return x_aligned
     else:
-        # print("No face detected")
+        print("No face detected")
         return None
     
 def detect_faces(files):
@@ -40,20 +40,13 @@ def detect_faces(files):
         aligned.append(detect_face(img))
     return aligned
 
-# #### Calculate image embeddings
-# 
-# MTCNN will return images of faces all the same size, enabling easy batch processing with the Resnet recognition module. Here, since we only have a few images, we build a single batch and perform inference on it. 
-# 
-# For real datasets, code should be modified to control batch sizes being passed to the Resnet, particularly if being processed on a GPU. For repeated testing, it is best to separate face detection (using MTCNN) from embedding or classification (using InceptionResnetV1), as calculation of cropped faces or bounding boxes can then be performed a single time and detected faces saved for future use.
-
+# Calculate image embeddings
 def calculate_embeddings(aligned):
     aligned = torch.stack(aligned).to(device)
     embeddings = resnet(aligned).detach().cpu().numpy()
     return embeddings
 
-def distance(embeddings1, embeddings2, distance_metric=0):
-    # embeddings1 = embeddings1.cpu().numpy()
-    # embeddings2 = embeddings2.cpu().numpy() 
+def distance(embeddings1, embeddings2, distance_metric=0): 
     if distance_metric==0:
         # Euclidian distance
         dist = np.linalg.norm(embeddings1 - embeddings2)
@@ -66,6 +59,4 @@ def distance(embeddings1, embeddings2, distance_metric=0):
     else:
         raise 'Undefined distance metric %d' % distance_metric
     return dist
-
-
 

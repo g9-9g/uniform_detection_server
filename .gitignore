@@ -4,3 +4,4 @@ env/
 runs/
 stored_embeddings/
 .env
+.vscode
