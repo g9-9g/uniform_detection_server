@@ -17,6 +17,11 @@ Run:
 ```
 !python app.py
 ```
+Setting up a .env file and a temporary upload/dataset folder is required. 
+
+Example of a .env file:
+
+![image](https://imgur.com/vKvuB9V.png)
 
 Upload an image of the employee and input their user ID. 
 * Face Verification: Verify and output if the detected face in the image is the same person as given user ID.
