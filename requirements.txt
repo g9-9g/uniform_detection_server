@@ -1,7 +1,6 @@
 # requirements
 # Usage: pip install -r requirements.txt
 
-deepface
 python-dotenv
 tensorflow
 Pillow>=9.5.0
