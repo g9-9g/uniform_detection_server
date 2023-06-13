@@ -1,8 +1,8 @@
 # requirements
 # Usage: pip install -r requirements.txt
 
+flask
 python-dotenv
-tensorflow
 Pillow>=9.5.0
 facenet_pytorch
 ultralytics

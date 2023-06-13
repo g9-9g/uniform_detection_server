@@ -69,7 +69,7 @@ def predict():
             sample_embeddings = {}
 
             for userID in userIDs:
-                if (not os.path.exists(os.path.join(DATASET_FOLDER, userID))) or (not os.listdir(os.path.join(DATASET_FOLDER, userID))):
+                if not os.path.exists(os.path.join(DATASET_FOLDER, userID + ".npy")):
                     sample_img = dts.downloadSample(userID, max_images=3,save_dir=UPLOAD_FOLDER)
                     preprocess.process_images(sample_img)
                     known_aligned = face_verification.detect_faces(sample_img)
@@ -85,7 +85,7 @@ def predict():
                             os.makedirs(os.path.join(DATASET_FOLDER, userID), exist_ok=True)
                         np.save(os.path.join(DATASET_FOLDER, userID, userID + ".npy"), known_embeddings)
                 else:
-                    sample_embeddings[userID] = np.load(os.path.join(DATASET_FOLDER, userID, userID + ".npy"))
+                    sample_embeddings[userID] = np.load(os.path.join(DATASET_FOLDER, userID + ".npy"))
 
             # Preprocess
             if not test_data:
