@@ -70,7 +70,7 @@ def predict():
 
             for userID in userIDs:
                 if not os.path.exists(os.path.join(DATASET_FOLDER, userID + ".npy")):
-                    sample_img = dts.downloadSample(userID, max_images=3,save_dir=UPLOAD_FOLDER)
+                    sample_img = dts.downloadSample(userID, max_images=5,save_dir=UPLOAD_FOLDER)
                     preprocess.process_images(sample_img)
                     known_aligned = face_verification.detect_faces(sample_img)
                     known_aligned = list(filter(lambda item: item is not None, known_aligned))
@@ -83,7 +83,7 @@ def predict():
                         sample_embeddings[userID] = known_embeddings
                         if not os.path.exists(os.path.join(DATASET_FOLDER, userID)):
                             os.makedirs(os.path.join(DATASET_FOLDER, userID), exist_ok=True)
-                        np.save(os.path.join(DATASET_FOLDER, userID, userID + ".npy"), known_embeddings)
+                        np.save(os.path.join(DATASET_FOLDER, userID + ".npy"), known_embeddings)
                 else:
                     sample_embeddings[userID] = np.load(os.path.join(DATASET_FOLDER, userID + ".npy"))
 
@@ -110,12 +110,12 @@ def predict():
             if not test_data:
                 raise Exception("NO FACE DETECTED IN TEST IMAGES OF ALL USERS")
             
-            unknown_embeddings = face_verification.calculate_embeddings(filtered_aligned)
+            unknown_embeddings = face_verification.get_embeddings(filtered_aligned)
             userIDs = test_data.keys()
             filtered_images = list(test_data.values())
 
             # Face verification
-            threshold = 0.71 
+            threshold = THRESHOLD 
             for i, userID in enumerate(userIDs):
                 unknown_embedding = unknown_embeddings[i]
                 # test_data[userID] = unknown_embedding

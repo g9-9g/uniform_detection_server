@@ -24,7 +24,8 @@ SECRET_KEY = os.environ['server_private_key']
 PROJECT_NAME = os.environ["project_name"]
 API_KEY = os.environ["api_key"]
 
-
+# Facenet
+THRESHOLD = 0.85
 # Sample
 # sample = {
 #     "token": "",

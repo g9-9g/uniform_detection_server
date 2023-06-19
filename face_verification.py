@@ -46,17 +46,15 @@ def calculate_embeddings(aligned):
     embeddings = resnet(aligned).detach().cpu().numpy()
     return embeddings
 
-def distance(embeddings1, embeddings2, distance_metric=0): 
-    if distance_metric==0:
-        # Euclidian distance
-        dist = np.linalg.norm(embeddings1 - embeddings2)
-    elif distance_metric==1:
-        # Distance based on cosine similarity
-        dot = np.sum(np.multiply(embeddings1, embeddings2), axis=0)
-        norm = np.linalg.norm(embeddings1, axis=0) * np.linalg.norm(embeddings2, axis=0)
-        similarity = dot / norm
-        dist = np.arccos(similarity) / math.pi
-    else:
-        raise 'Undefined distance metric %d' % distance_metric
-    return dist
+def get_embeddings(aligned):
+    embeddings = []
+    with torch.no_grad():
+        for x_aligned in aligned:
+            x_aligned = x_aligned.to(device)
+            embedding = resnet(x_aligned.unsqueeze(0)).to('cpu').numpy()
+            embeddings.append(embedding)
+    return embeddings
+
+def distance(embeddings1, embeddings2): 
+    return np.linalg.norm(embeddings1 - embeddings2)
 
