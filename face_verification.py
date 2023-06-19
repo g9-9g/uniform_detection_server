@@ -3,7 +3,6 @@ import torch
 import numpy as np
 import os
 from PIL import Image
-import math
 workers = 0 if os.name == 'nt' else 4
 
 # Determine if an nvidia GPU is available
@@ -55,6 +54,17 @@ def get_embeddings(aligned):
             embeddings.append(embedding)
     return embeddings
 
-def distance(embeddings1, embeddings2): 
-    return np.linalg.norm(embeddings1 - embeddings2)
+def distance(embeddings1, embeddings2, distance_metric=0):
+    if distance_metric==0:
+        # Euclidian distance
+        return np.linalg.norm(embeddings1 - embeddings2)
+    elif distance_metric==1:
+        # Distance based on cosine similarity
+        dot = np.dot(embeddings1, embeddings2)
+        norm = np.linalg.norm(embeddings1) * np.linalg.norm(embeddings2)
+        similarity = dot / norm
+        dist = np.arccos(similarity) / np.pi
+    else:
+        raise 'Undefined distance metric %d' % distance_metric
 
+    return dist

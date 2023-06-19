@@ -25,7 +25,8 @@ PROJECT_NAME = os.environ["project_name"]
 API_KEY = os.environ["api_key"]
 
 # Facenet
-THRESHOLD = 0.85
+EUCLIDIAN_THRESHOLD = 0.85
+COSINE_SIMILARITY_THRESHOLD = 0.28
 # Sample
 # sample = {
 #     "token": "",

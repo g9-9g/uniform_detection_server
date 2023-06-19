@@ -81,8 +81,6 @@ def predict():
                     else:
                         known_embeddings = face_verification.calculate_embeddings(known_aligned)
                         sample_embeddings[userID] = known_embeddings
-                        if not os.path.exists(os.path.join(DATASET_FOLDER, userID)):
-                            os.makedirs(os.path.join(DATASET_FOLDER, userID), exist_ok=True)
                         np.save(os.path.join(DATASET_FOLDER, userID + ".npy"), known_embeddings)
                 else:
                     sample_embeddings[userID] = np.load(os.path.join(DATASET_FOLDER, userID + ".npy"))
@@ -115,13 +113,13 @@ def predict():
             filtered_images = list(test_data.values())
 
             # Face verification
-            threshold = THRESHOLD 
+            threshold = COSINE_SIMILARITY_THRESHOLD
             for i, userID in enumerate(userIDs):
                 unknown_embedding = unknown_embeddings[i]
                 # test_data[userID] = unknown_embedding
                 sample_embedding = sample_embeddings[userID]
                 
-                avg_dist = np.mean([face_verification.distance(unknown_embedding, se) for se in sample_embedding])
+                avg_dist = np.mean([face_verification.distance(unknown_embedding, se, distance_metric=1) for se in sample_embedding])
                 print("avg_distance = ", avg_dist)
                 if avg_dist > threshold:
                     result_response[userID] = {'face': False, 'uniform': None}
