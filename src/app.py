@@ -7,12 +7,12 @@ from werkzeug.utils import secure_filename
 import face_verification
 import dataset
 import preprocess
-import numpy as np
 from ultralytics import YOLO
-
 from constant import *
 
-app = Flask(__name__)
+import numpy as np
+
+app = Flask(__name__, template_folder='../templates')
 
 
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
@@ -57,7 +57,6 @@ def predict():
         
         # Initial response
         result_response = {}
-        # result of each user should include user_id, face, uniform
 
         # Sample Image
         try:
@@ -184,5 +183,5 @@ if __name__ == '__main__':
         description="Flask app exposing yolov8 models")
     parser.add_argument("--port", default=5000, type=int, help="port number")
     args = parser.parse_args()
-    model = YOLO("best.pt")
+    model = YOLO("models\\best.pt")
     app.run(host="127.0.0.1", port=args.port)
