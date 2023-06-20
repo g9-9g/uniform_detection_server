@@ -8,19 +8,18 @@ Clone repo and install [requirements.txt](https://github.com/g9-9g/uniform_detec
 ```
 git clone https://github.com/g9-9g/uniform_detection_server
 cd uniform_detection_server
-pip uninstall Pillow
 pip install -r requirements.txt
 ```
 
 ## Usage
 Run:
 ```
-!python app.py
+python app.py
 ```
 
 Upload an image of the employee and input their user ID. 
 * Face Verification: Verify and output if the detected face in the image is the same person as given user ID.
-* Uniform Detection: Output the coordinate of bag, helmet and shirt with company's logo (if any).
+* Uniform Detection: Check if bags, helmets and shirts (with company's logo) are included in the image.
 
 ## API Guide (work in progress)
 * POST User/UserLogin - description
