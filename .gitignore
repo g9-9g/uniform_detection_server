@@ -1,4 +1,11 @@
 __pycache__/
 temp/
 env/
+runs/
+stored_embeddings/
+out/
 .env
+.vscode
+
+Pipfile
+Pipfile.lock
