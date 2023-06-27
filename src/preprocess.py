@@ -49,7 +49,7 @@ def remove_alpha_channel(image):
 def process_images(paths=[]):
     for path in paths:
         image = Image.open(path)
-        image = remove_alpha_channel(autorotate(autoresize(image)))
+        image = remove_alpha_channel(autoresize(autorotate(image)))
         # image.show()
         image.save(path, quality = 95)
         image.close()

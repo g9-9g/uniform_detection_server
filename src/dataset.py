@@ -83,15 +83,24 @@ class Uniform:
         for url in all_images:
             if (cnt >= max_images):
                 break
-            response = requests.get(url, allow_redirects=True)
-            dir = os.path.join(UPLOAD_FOLDER, '{}_{}.jpg'.format(user_id, cnt))
-            with open(dir, 'wb') as f:
-                f.write(response.content)
-            preprocess.process_images([dir])
-            aligned =  face_verification.detect_faces([dir])
-            if aligned:
-                known_aligned.append(aligned[0])
+            
+            from PIL import Image
+            response = requests.get(url,  stream=True)
+            image = Image.open(response.raw)
+            image = preprocess.remove_alpha_channel(preprocess.autoresize(preprocess.autorotate(image)))
+            aligned =  face_verification.detect_face(image)
+            if aligned is not None:
+                known_aligned.append(aligned)
                 cnt+=1
+            # response = requests.get(url, allow_redirects=True)
+            # dir = os.path.join(UPLOAD_FOLDER, '{}_{}.jpg'.format(user_id, cnt))
+            # with open(dir, 'wb') as f:
+            #     f.write(response.content)
+            # preprocess.process_images([dir])
+        #     aligned =  face_verification.detect_faces([dir])
+        #     if not aligned[0] is None:
+        #         known_aligned.append(aligned[0])
+        #         cnt+=1
             
         if not known_aligned:
             return None
@@ -102,3 +111,8 @@ class Uniform:
             np.save(os.path.join(save_dir, user_id + ".npy"), known_embeddings)  
 
         return known_embeddings
+
+
+if __name__ == '__main__':
+    dts = Uniform(url=URL, username=ADMIN["username"],pwd=ADMIN["pwd"])
+    dts.download_sample(user_id="0336202098",saved=False, max_images=5)
