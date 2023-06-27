@@ -14,7 +14,7 @@ pip install -r requirements.txt
 ## Usage
 Run:
 ```
-python app.py
+python src\app.py
 ```
 
 Upload an image of the employee and input their user ID. 
