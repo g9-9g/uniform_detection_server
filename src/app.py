@@ -1,9 +1,10 @@
 import os
 import argparse
 
-from flask import Flask, redirect, render_template, url_for, request, session, jsonify, json, flash
+from flask import Flask, redirect, render_template, url_for, request, session, jsonify, json, flash,make_response
 from werkzeug.utils import secure_filename
 
+import api
 import face_verification
 import dataset
 import preprocess
@@ -20,120 +21,115 @@ app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
 
 app.secret_key = SECRET_KEY
 
-
-def allowed_file(filename):
-    return '.' in filename and \
-           filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
-
-
-@app.route('/')
-def upload_form():
-    return render_template('upload.html')
-
-
-@app.route("/", methods=['POST'])
-def predict():
+@app.route('/login', methods=['GET', 'POST'])
+def login():
     if request.method == 'POST':
-        # Download
-        if 'files[]' not in request.files:
-            flash('No file part')
-
-        files = request.files.getlist('files[]')
-        all_images = []
-
-        for file in files:
-            if file and allowed_file(file.filename):
-                filename = secure_filename(file.filename)
-                file.save(os.path.join(UPLOAD_FOLDER, filename))
-                all_images.append(os.path.join(UPLOAD_FOLDER, filename))
-
-        flash('File(s) successfully uploaded')
-        
-        # Initial response
-        result_response = {}
-
-        # Sample Image
+        username = request.form['username']
+        pwd = request.form['password']
         try:
-            userIDs = request.form['textlist'].split(' ')
-            if len(userIDs) != len(all_images):
-                raise Exception("Number of images and userIDs are not equal")
-                
-            dts = dataset.Uniform(url=URL,username=ADMIN["username"],pwd=ADMIN["pwd"])
-            sample_embeddings = {}
-
-            for userID in userIDs:
-                known_embedding = dts.download_sample(userID,5)
-                sample_embeddings[userID] = known_embedding
-
-                # Set default result value
-                result_response[userID] = {'face': None, 'uniform': None}
-                
-
-            # Preprocess
-            preprocess.process_images(all_images)
-
-            # Filter out images with no face detected
-            
-            unknown_aligned = face_verification.detect_faces(all_images)   
-            unknown_embeddings = face_verification.get_embeddings(unknown_aligned)
-
-            # Face verification
-            threshold = COSINE_SIMILARITY_THRESHOLD
-            for i, userID in enumerate(userIDs):
-                unknown_embedding = unknown_embeddings[i]
-                sample_embedding = sample_embeddings[userID]
-                if unknown_embedding is None or sample_embedding is None: 
-                    continue
-                
-                avg_dist = np.mean([face_verification.distance(unknown_embedding, se, distance_metric=1) for se in sample_embedding])
-                print("avg_distance = ", avg_dist)
-                result_response[userID] = {'face':  str(avg_dist < threshold), 'uniform': None}
-                    
-
-            # Uniform detection
-            class_names = {
-                0: "ao",
-                1: "balo",
-                2: "mu"
-            }
-            results = model(all_images)
-            for result in results:
-                prediction = result.boxes.cpu().numpy()
-                cl = prediction.cls.copy()
-                conf = prediction.conf.copy().astype('str')
-                result_response[userID]['uniform'] = [(class_names[i], j) for i, j in zip(cl, conf)]
-
+            token = dataset.Uniform(username).get_token(pwd)
+            if token:
+                session['token'] = token
+                session['username'] = username
+                print(token, username)
+                return redirect(url_for('predict'))
         except Exception as e:
-            print(e)
+            pass
+    print("AUTH ERROR")
+    return LOGIN_FORM
 
-        print(result_response)
-        session['result'] = result_response
+@app.route('/logout')
+def logout():
+    session.pop('username', None)
+    session.pop('token', None)
+    session.pop('result',None)
+    return redirect(url_for('login'))
 
-        # redirect('/')
-        return result_response
+
+@app.route("/", methods=['POST', 'GET'])
+def predict():
+    if request.method == 'GET':
+        if 'token' not in session or 'username' not in session:
+            return redirect(url_for('login'))
+        return render_template('upload.html')
+    
+    token, username = session['token'] ,session['username']
+    userIDs , images = api.handle_files(request)
+    response_result = api.Result(userIDs)
+    
+    try:
+        data = dataset.Uniform(username,token)
+        # if not data.check_token():
+        #     print("Token expired")
+        #     return redirect(url_for('login'))
+        
+        sample_embeddings = {}
+
+        # Get local embeddings, if not exist, download it from server
+        for userID in userIDs:
+            known_embedding = data.download_sample(userID,5)
+            sample_embeddings[userID] = known_embedding
+
+
+        preprocess.process_images(images)
+
+        # Filter out images with no face detected
+        
+        unknown_aligned = face_verification.detect_faces(images)   
+        unknown_embeddings = face_verification.get_embeddings(unknown_aligned)
+
+        # Face verification
+        threshold = COSINE_SIMILARITY_THRESHOLD
+        for i, userID in enumerate(userIDs):
+            unknown_embedding = unknown_embeddings[i]
+            sample_embedding = sample_embeddings[userID]
+            if unknown_embedding is None or sample_embedding is None: 
+                continue
+            
+            avg_dist = np.mean([face_verification.distance(unknown_embedding, se, distance_metric=1) for se in sample_embedding])
+            print("avg_distance = ", avg_dist)
+            response_result.write(userID, face=str(avg_dist < threshold))
+
+
+        # Uniform detection
+        class_names = {
+            0: "ao",
+            1: "balo",
+            2: "mu"
+        }
+        results = model(images)
+        for userID, result in zip(userIDs, results):
+            prediction = result.boxes.cpu().numpy()
+            cl = prediction.cls.copy()
+            conf = prediction.conf.copy().astype('str')
+            response_result.write(userID, uniform=[(class_names[i], j) for i, j in zip(cl, conf)])
+
+    except Exception as e:
+        response_result.error(e)
+        return response_result.json()
+
+    print(response_result.json())
+    session['result'] = response_result.json()
+
+    # redirect('/')
+    return response_result.json()
 
 
 @app.route("/save_result", methods=['GET'])
 def save_result():
+    if 'token' not in session or 'username' not in session:
+        return redirect(url_for('login'))
     result = session['result']
     if not result:
         return "No updated found"
 
     return result
 
+
 @app.after_request
 def after_request_callback(response):
     if request.path == '/':
-        # Empty upload folder
-        for filename in os.listdir(UPLOAD_FOLDER):
-            file_path = os.path.join(UPLOAD_FOLDER, filename)
-            try:
-                if os.path.isfile(file_path):
-                    os.remove(file_path)
-            except Exception as e:
-                print(f"Error deleting file: {file_path} - {e}")
-        pass
-        #
+        api.empty_folder(UPLOAD_FOLDER)
 
     return response
 

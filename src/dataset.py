@@ -1,5 +1,7 @@
 import requests
 from datetime import datetime
+from PIL import Image
+
 from constant import *
 
 import face_verification
@@ -8,37 +10,32 @@ import numpy as np
 
 
 class Uniform:
-    ADMIN = {}
     users = {}
-    token = None
     filters = []
 
-    def __init__(self, url, username, pwd=None, token=None):
-        self.URL = url
+    def __init__(self, username, token=None):
         self.TIME_START = DEFAULT_STARTTIME
         self.TIME_END = datetime.today().strftime("%Y-%m-%d")
-        if token:
-            self.token = token
-            return
-        self.ADMIN = {
-            "userName": username,
-            "Password": pwd
-        }
-        if not self.token:
-            self.get_token()
+        self.username = username
+        self.token = token
 
-    def get_token(self):
-        if not self.ADMIN:
-            raise Exception("Auth error")
-        self.token = requests.post('{}/User/UserLogin'.format(self.URL), data=self.ADMIN).json()['Token']
+    def check_token(self):
+        try:
+            print(self.get_user())
+            if self.get_user() and self.token:
+                return True
+        except Exception:
+            return False
+        return False
+
+    def get_token(self, password):
+        self.token = requests.post('{}/User/UserLogin'.format(URL), data={'UserName': self.username, 'Password': password}).json()['Token']
         return self.token
 
     def get_user(self):
-        if not self.token:
-            self.get_token()
         if not self.users:
-            self.users = requests.post('{}/User/Get_userLst'.format(self.URL), data={
-                'UserName': self.ADMIN['userName'],
+            self.users = requests.post('{}/User/Get_userLst'.format(URL), data={
+                'UserName': self.username,
                 'Token': self.token
             }).json()["UserLst"]
         return self.users
@@ -46,8 +43,8 @@ class Uniform:
     def get_image_per_user(self, user_id, time=None):
         if not time:
             time = (self.TIME_START, self.TIME_END)
-        res = requests.post('{}/Call/GetImageLstByUser'.format(self.URL), data={
-            'UserName': self.ADMIN["userName"],
+        res = requests.post('{}/Call/GetImageLstByUser'.format(URL), data={
+            'UserName': self.username,
             'Token': self.token,
             'UserId': user_id,
             'TimeStart': time[0],
@@ -84,7 +81,6 @@ class Uniform:
             if (cnt >= max_images):
                 break
             
-            from PIL import Image
             response = requests.get(url,  stream=True)
             image = Image.open(response.raw)
             image = preprocess.remove_alpha_channel(preprocess.autoresize(preprocess.autorotate(image)))
@@ -92,16 +88,7 @@ class Uniform:
             if aligned is not None:
                 known_aligned.append(aligned)
                 cnt+=1
-            # response = requests.get(url, allow_redirects=True)
-            # dir = os.path.join(UPLOAD_FOLDER, '{}_{}.jpg'.format(user_id, cnt))
-            # with open(dir, 'wb') as f:
-            #     f.write(response.content)
-            # preprocess.process_images([dir])
-        #     aligned =  face_verification.detect_faces([dir])
-        #     if not aligned[0] is None:
-        #         known_aligned.append(aligned[0])
-        #         cnt+=1
-            
+
         if not known_aligned:
             return None
         
@@ -112,7 +99,3 @@ class Uniform:
 
         return known_embeddings
 
-
-if __name__ == '__main__':
-    dts = Uniform(url=URL, username=ADMIN["username"],pwd=ADMIN["pwd"])
-    dts.download_sample(user_id="0336202098",saved=False, max_images=5)

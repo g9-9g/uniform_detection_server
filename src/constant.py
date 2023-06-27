@@ -18,7 +18,13 @@ ADMIN = {"username": os.environ["admin_username"], "pwd": os.environ["admin_pwd"
 
 # Server
 SECRET_KEY = os.environ['server_private_key']
-
+LOGIN_FORM = '''
+        <form method="post">
+            <p><input type=text name=username>
+            <input type=password name=password>
+            <p><input type=submit value=Login>
+        </form>
+    '''
 
 # Roboflow
 PROJECT_NAME = os.environ["project_name"]
