@@ -91,7 +91,7 @@ def predict():
             
             avg_dist = np.mean([face_verification.distance(unknown_embedding, se, distance_metric=1) for se in sample_embedding])
             print("avg_distance = ", avg_dist)
-            response_result[userID]= {"face": str(avg_dist < threshold), "uniform" : None}
+            response_result[userID]= {"face": str(np.less(avg_dist, threshold)), "uniform" : None}
 
 
         # Uniform detection

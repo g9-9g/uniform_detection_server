@@ -70,19 +70,21 @@ class Uniform:
 
     def download_sample(self, user_id, max_images=5,save_dir=DATASET_FOLDER, random=False, saved=True):        
         if os.path.exists(os.path.join(save_dir, user_id + ".npy")):
-            
             return np.load(os.path.join(save_dir, user_id + ".npy"))
     
         print (os.path.join(save_dir, user_id + ".npy"))
         all_images = self.get_image_per_user(user_id)
         # known_images = []
+        if not all_images:
+            print("No image found for user {}".format(user_id))
+            return None
+        
         known_embeddings = []
         known_aligned = []
         cnt = 0
         for url in all_images:
             if (cnt >= max_images):
                 break
-            
             response = requests.get(url,  stream=True)
             image = Image.open(response.raw)
             image = preprocess.remove_alpha_channel(preprocess.autoresize(preprocess.autorotate(image)))
@@ -95,7 +97,6 @@ class Uniform:
             return None
         
         known_embeddings = face_verification.calculate_embeddings(known_aligned)
-        print(known_embeddings)
         if saved:
             print("SAVED")
             np.save(os.path.join(save_dir, user_id + ".npy"), known_embeddings)  
