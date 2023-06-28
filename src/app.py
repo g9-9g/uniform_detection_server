@@ -55,8 +55,11 @@ def predict():
     
     token, username = session['token'] ,session['username']
     userIDs , images = api.handle_files(request)
-    response_result = api.Result(userIDs)
-    
+    print(userIDs,images)
+    response_result = {}
+    for userID in userIDs:
+        response_result[userID] = {'face' : None, 'uniform' : None}
+
     try:
         data = dataset.Uniform(username,token)
         # if not data.check_token():
@@ -88,7 +91,7 @@ def predict():
             
             avg_dist = np.mean([face_verification.distance(unknown_embedding, se, distance_metric=1) for se in sample_embedding])
             print("avg_distance = ", avg_dist)
-            response_result.write(userID, face=str(avg_dist < threshold))
+            response_result[userID]= {"face": str(avg_dist < threshold), "uniform" : None}
 
 
         # Uniform detection
@@ -102,17 +105,15 @@ def predict():
             prediction = result.boxes.cpu().numpy()
             cl = prediction.cls.copy()
             conf = prediction.conf.copy().astype('str')
-            response_result.write(userID, uniform=[(class_names[i], j) for i, j in zip(cl, conf)])
+            response_result[userID]['uniform']=[(class_names[i], j) for i, j in zip(cl, conf)]
 
     except Exception as e:
-        response_result.error(e)
-        return response_result.json()
+        api.handle_err(e)
 
-    print(response_result.json())
-    session['result'] = response_result.json()
+    print(response_result)
+    session['result'] = response_result
 
-    # redirect('/')
-    return response_result.json()
+    return redirect('/save_result')
 
 
 @app.route("/save_result", methods=['GET'])

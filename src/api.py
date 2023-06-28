@@ -40,30 +40,6 @@ def empty_folder(folder_path):
         except Exception as e:
             print(f"Error deleting file: {file_path} - {e}")
 
-class Result: 
-    data = {}
-    def __init__(self, userIDs):
-        self.userIDs = userIDs
-        for userID in userIDs:
-            self.data[userID] = {'face' : None, 'uniform' : None}
 
-    def write(self, userID, face=None, uniform=None):
-        if face:
-            self.data[userID]['face'] = face
-        if uniform:
-            self.data[userID]['uniform'] = uniform
-
-
-    def error(self, err):
-        print(err)
-
-    def json(self, remove_None = False):
-        if (remove_None):
-            for userID in self.userIDs:
-                if self.data[userID] is None:
-                    continue
-                if self.data[userID]['face'] is None or self.data[userID]['uniform'] is None:
-                    del self.data[userID]
-    
-        return json.dumps(self.data)
-        
+def handle_err (e):
+    print(e)

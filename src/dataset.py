@@ -70,8 +70,10 @@ class Uniform:
 
     def download_sample(self, user_id, max_images=5,save_dir=DATASET_FOLDER, random=False, saved=True):        
         if os.path.exists(os.path.join(save_dir, user_id + ".npy")):
+            
             return np.load(os.path.join(save_dir, user_id + ".npy"))
     
+        print (os.path.join(save_dir, user_id + ".npy"))
         all_images = self.get_image_per_user(user_id)
         # known_images = []
         known_embeddings = []
@@ -93,8 +95,9 @@ class Uniform:
             return None
         
         known_embeddings = face_verification.calculate_embeddings(known_aligned)
-
+        print(known_embeddings)
         if saved:
+            print("SAVED")
             np.save(os.path.join(save_dir, user_id + ".npy"), known_embeddings)  
 
         return known_embeddings
