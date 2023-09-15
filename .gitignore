@@ -1,11 +1,18 @@
 __pycache__/
 temp/
+instance/
 env/
-runs/
+.pytest_cache/
 stored_embeddings/
 out/
 .env
 .vscode
 
+
 Pipfile
 Pipfile.lock
+
+conftest.py
+tests/
+
+pyproject.toml/

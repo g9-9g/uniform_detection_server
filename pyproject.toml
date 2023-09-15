@@ -1,0 +1,11 @@
+[project]
+name = "uniform_detection_server"
+version = "1.0.0"
+description = ""
+dependencies = [
+    "flask","facenet_pytorch","ultralytics"
+]
+
+[build-system]
+requires = ["flit_core<4"]
+build-backend = "flit_core.buildapi"
