@@ -1,7 +1,8 @@
 import functools
 import numpy as np
 from PIL import Image
-import asyncio
+
+from flask_cors import CORS
 
 from flask import (
     Blueprint, flash, g, redirect, render_template, request, session, url_for, current_app
@@ -9,42 +10,77 @@ from flask import (
 
 bp = Blueprint('predict', __name__, url_prefix='/predict')
 
-from src.utils.api import handle_files, handle_err, empty_folder
-from src.utils.preprocess import *
-from src.utils.face_verification import *
-from src.routes.auth import login_required
-from src.utils.dataset import *
+from uniform_detection_server.utils.api import handle_files, handle_err, empty_folder
+from uniform_detection_server.utils.preprocess import *
+from uniform_detection_server.utils.face_verification import *
+from uniform_detection_server.routes.auth import login_required
+from uniform_detection_server.utils.dataset import *
 
 @bp.route('/', methods=['GET', 'POST'])
 # @login_required
+# @cross_origin()
 def predict():
     if request.method == 'GET':
         return render_template('predict/insert.html')
 
-    # userIDs,images = handle_files(request, current_app.config['UPLOAD_FOLDER'])
+    image_paths, userIDs = handle_files(request, current_app.config.tempfolder)
     # print(userIDs,images)
-    print(request.files)
-    uploaded_files = request.files
+    
+  
     response_result = {} 
-    # for field_name, file in uploaded_files.items():
-    #         if file.filename == '':
-    #             continue  # Skip empty file fields
 
-    #         # Save the file to the upload directory
-    #         file.save(os.path.join(current_app.config['UPLOAD_FOLDER'], file.filename))
     # for userID in userIDs:
     #     response_result[userID] = {'face' : None, 'uniform' : None}
 
     # try:
-        
-    #     sample_embeddings = {}
+    threshold = current_app.config['COSINE_SIMILARITY_THRESHOLD']
+    sample_embeddings = {}
+    unknown_embeddings = {}
 
-    #     # Get local embeddings, if not exist, download it from server
-    #     for userID in userIDs:
-    #         known_embedding = load_sample(user_id=userID,save_dir=current_app.config['DATASET_FOLDER'])
-    #         sample_embeddings[userID] = known_embedding
+#     # Get local embeddings, if not exist, download it from server
+    for userID in userIDs:
+        known_embedding = load_sample(user_id=userID,save_dir=current_app.config['DATASET_FOLDER'])
+        sample_embeddings[userID] = known_embedding
+        # response_result[userID]['result'] = []
+    
+    print(userIDs)
 
-    #     process_images(images)
+    for userID in userIDs:
+        if sample_embeddings[userID] is None:
+            response_result[userID] = {'error': 'No sample embeddings', 'result': None}
+            userIDs.remove(userID)
+            continue
+
+        if not userID in image_paths:
+            userIDs.remove(userID)
+            response_result[userID] = {'error': 'No image found', 'result': None}
+            continue
+            
+
+        unknown_embeddings[userID] = []
+
+        for img in image_paths[userID]:
+            process_images([img])
+            unknown_aligned = detect_faces([img])
+            unknown_embeddings[userID].append(get_embeddings(unknown_aligned)[0])
+
+        for unknown_embedding in enumerate(unknown_embeddings[userID]):
+            avg_dist = np.mean([distance(unknown_embedding, se, distance_metric=1) for se in sample_embeddings[userID]])
+            print("avg_distance = ", avg_dist)
+            response_result[userID]= {'result': {"face": str(avg_dist < threshold)}}
+            # response_result[userID]['result'].append()
+
+    print(response_result)
+
+#     # Get local embeddings, if not exist, download it from server
+    # for userID in userIDs:
+    #     known_embedding = load_sample(user_id=userID,save_dir=current_app.config['DATASET_FOLDER'])
+    #     sample_embeddings[userID] = known_embedding
+    #     avg_dist = np.mean([distance(unknown_embedding, se, distance_metric=1) for se in sample_embedding])
+    #     print("avg_distance = ", avg_dist)
+    #     response_result[userID]= {"face": str(avg_dist < threshold), "uniform" : None}
+
+    # process_images(images)
 
     #     # Filter out images with no face detected
     #     unknown_aligned = detect_faces(images)   
@@ -111,7 +147,7 @@ def ds():
 
 @bp.after_request
 def after_request_callback(response):
-    # empty_folder(current_app.config['UPLOAD_FOLDER'])
+    empty_folder(current_app.config.tempfolder)
     return response
 
 @bp.route('/result', methods=['POST', 'GET'])

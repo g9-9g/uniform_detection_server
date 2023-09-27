@@ -4,7 +4,7 @@ from flask import (
     Blueprint, flash, g, redirect, render_template, request, session, url_for, current_app
 )
 
-from src.utils.dataset import *
+from uniform_detection_server.utils.dataset import *
 
 bp = Blueprint('auth', __name__, url_prefix='/auth')
 
