@@ -33,7 +33,7 @@ def get_user_list():
         }).json()["UserLst"]
     return None
 
-def get_image_per_user(user_id, TIME_START="2021-05-05",TIME_END=datetime.today().strftime("%Y-%m-%d")):
+def get_image_per_user(user_id, TIME_START="2020-05-05",TIME_END=datetime.today().strftime("%Y-%m-%d")):
     res = requests.post('http://103.121.91.247/ImageCPC1HN/Call/GetImageLstByUser', data={
         'UserName': session['username'],
         'Token': session['token'],
@@ -47,15 +47,13 @@ def get_image_per_user(user_id, TIME_START="2021-05-05",TIME_END=datetime.today(
 def download_sample(user_id, max_images=5,save_dir='temp', random=False, saved=True):
     if os.path.exists(os.path.join(save_dir, user_id + ".npy")):       
         return np.load(os.path.join(save_dir, user_id + ".npy"))
-
-    print (os.path.join(save_dir, user_id + ".npy"), session['token'], session['username'])
     all_images = get_image_per_user(user_id)
     # known_images = []
     known_embeddings = []
     known_aligned = []
     cnt = 0
     for url in all_images:
-        if (cnt >= max_images):
+        if (cnt >= int(max_images)):
             break
         
         response = requests.get(url,  stream=True)
@@ -70,7 +68,6 @@ def download_sample(user_id, max_images=5,save_dir='temp', random=False, saved=T
         return None
     
     known_embeddings = face_verification.calculate_embeddings(known_aligned)
-    print(known_embeddings)
     if saved:
         print("SAVED")
         np.save(os.path.join(save_dir, user_id + ".npy"), known_embeddings)  

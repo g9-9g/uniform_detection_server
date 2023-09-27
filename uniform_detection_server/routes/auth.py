@@ -1,7 +1,7 @@
 import functools
 
 from flask import (
-    Blueprint, flash, g, redirect, render_template, request, session, url_for, current_app
+    Blueprint, flash, g, redirect, render_template, request, session, url_for
 )
 
 from uniform_detection_server.utils.dataset import *
@@ -57,7 +57,7 @@ def logout():
 def login_required(view):
     @functools.wraps(view)
     def wrapped_view(**kwargs):
-        if g.username is None:
+        if not 'token' in session:
             return redirect(url_for('auth.login'))
 
         return view(**kwargs)

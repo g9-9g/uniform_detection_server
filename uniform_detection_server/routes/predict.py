@@ -17,105 +17,74 @@ from uniform_detection_server.routes.auth import login_required
 from uniform_detection_server.utils.dataset import *
 
 @bp.route('/', methods=['GET', 'POST'])
-# @login_required
+@login_required
 # @cross_origin()
 def predict():
     if request.method == 'GET':
         return render_template('predict/insert.html')
 
     image_paths, userIDs = handle_files(request, current_app.config.tempfolder)
-    # print(userIDs,images)
-    
-  
     response_result = {} 
+    error = []
 
-    # for userID in userIDs:
-    #     response_result[userID] = {'face' : None, 'uniform' : None}
-
-    # try:
     threshold = current_app.config['COSINE_SIMILARITY_THRESHOLD']
     sample_embeddings = {}
     unknown_embeddings = {}
 
-#     # Get local embeddings, if not exist, download it from server
+    # Get local embeddings, if not exist, download it from server
     for userID in userIDs:
         known_embedding = load_sample(user_id=userID,save_dir=current_app.config['DATASET_FOLDER'])
         sample_embeddings[userID] = known_embedding
-        # response_result[userID]['result'] = []
-    
-    print(userIDs)
 
+    # Face Vertification
     for userID in userIDs:
-        if sample_embeddings[userID] is None:
-            response_result[userID] = {'error': 'No sample embeddings', 'result': None}
-            userIDs.remove(userID)
-            continue
-
         if not userID in image_paths:
-            userIDs.remove(userID)
-            response_result[userID] = {'error': 'No image found', 'result': None}
+            error.append(f'No image of user{userID}')
             continue
-            
 
+        if sample_embeddings[userID] is None:
+            error.append(f'user{userID} have no sample_embeddings')
+            continue
+    
+        response_result[userID] = {'result' : []}
         unknown_embeddings[userID] = []
 
         for img in image_paths[userID]:
             process_images([img])
-            unknown_aligned = detect_faces([img])
-            unknown_embeddings[userID].append(get_embeddings(unknown_aligned)[0])
+            try:      
+                unknown_aligned = detect_faces([img])
+                unknown_embeddings[userID].append(get_embeddings(unknown_aligned)[0])
+            except Exception as e:
+                error.append(f'Cannot detect face in image{img}')
+                continue
 
-        for unknown_embedding in enumerate(unknown_embeddings[userID]):
+        for unknown_embedding in unknown_embeddings[userID]:
             avg_dist = np.mean([distance(unknown_embedding, se, distance_metric=1) for se in sample_embeddings[userID]])
             print("avg_distance = ", avg_dist)
-            response_result[userID]= {'result': {"face": str(avg_dist < threshold)}}
-            # response_result[userID]['result'].append()
+            response_result[userID]['result'].append({"face": str(avg_dist < threshold)})
+
+
+    # Uniform detection
+    class_names = {
+        0: "ao",
+        1: "balo",
+        2: "mu"
+    }
+    # print(userIDs, response_result)
+    for userID in userIDs:
+        if userID in image_paths and not sample_embeddings[userID] is None and userID in unknown_embeddings:
+            for index, image in enumerate(image_paths[userID]):
+                try:
+                    result = current_app.config.model(image)[0]
+                    prediction = result.boxes.cpu().numpy()
+                    cl = prediction.cls.copy()
+                    conf = prediction.conf.copy().astype('str')
+                    response_result[userID]['result'][index]['uniform'] = ([(class_names[i], j) for i, j in zip(cl, conf)])
+                except Exception as e:
+                    error.append(f'error {e} at image{index} of user{userID}')
 
     print(response_result)
-
-#     # Get local embeddings, if not exist, download it from server
-    # for userID in userIDs:
-    #     known_embedding = load_sample(user_id=userID,save_dir=current_app.config['DATASET_FOLDER'])
-    #     sample_embeddings[userID] = known_embedding
-    #     avg_dist = np.mean([distance(unknown_embedding, se, distance_metric=1) for se in sample_embedding])
-    #     print("avg_distance = ", avg_dist)
-    #     response_result[userID]= {"face": str(avg_dist < threshold), "uniform" : None}
-
-    # process_images(images)
-
-    #     # Filter out images with no face detected
-    #     unknown_aligned = detect_faces(images)   
-    #     unknown_embeddings = get_embeddings(unknown_aligned)
-
-    #     # Face verification
-    #     threshold = current_app.config['COSINE_SIMILARITY_THRESHOLD']
-    #     for i, userID in enumerate(userIDs):
-    #         unknown_embedding = unknown_embeddings[i]
-    #         sample_embedding = sample_embeddings[userID]
-    #         if unknown_embedding is None or sample_embedding is None: 
-    #             continue
-            
-    #         avg_dist = np.mean([distance(unknown_embedding, se, distance_metric=1) for se in sample_embedding])
-    #         print("avg_distance = ", avg_dist)
-    #         response_result[userID]= {"face": str(avg_dist < threshold), "uniform" : None}
-
-
-    #     # Uniform detection
-    #     class_names = {
-    #         0: "ao",
-    #         1: "balo",
-    #         2: "mu"
-    #     }
-    #     results = current_app.config.model(images)
-    #     for userID, result in zip(userIDs, results):
-    #         prediction = result.boxes.cpu().numpy()
-    #         cl = prediction.cls.copy()
-    #         conf = prediction.conf.copy().astype('str')
-    #         response_result[userID]['uniform']=[(class_names[i], j) for i, j in zip(cl, conf)]
-        
-    #     session['result'] = response_result
-    #     print(response_result)
-    # except Exception as e:
-    #     handle_err(e)
+    response_result["errors": error]
 
     return response_result
 
@@ -124,24 +93,26 @@ def predict():
 @bp.route('/download_sample', methods=['POST']) 
 @login_required
 def ds():
-    uids = request.form.get('uids')
+    uids = request.form.getlist('uids')
     max_images = request.form.get('max_images')
-    filters = request.form.get('filters')
+    # filters = request.form.get('filters')
     response_result = {}
     try:
         if uids is None:
             raise Exception("Error no uids")
+        
         if max_images is None:
             max_images = 5
         for uid in uids:
             embeddings = download_sample(uid, max_images, current_app.config['DATASET_FOLDER'])
             if embeddings is not None:
-                response_result[uid].status = 'OK'
+                response_result[uid] = {'status' : 'OK'}
             else:
-                response_result[uid].status = 'USER NOT EXIST'
+                response_result[uid] = {'status' : 'User not exist'}
             
     except Exception as e:
-        response_result['error'] = e
+        print(e)
+        response_result['error'] = "Server not respond"
 
     return response_result
 

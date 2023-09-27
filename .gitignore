@@ -10,8 +10,3 @@ out/
 
 Pipfile
 Pipfile.lock
-
-conftest.py
-tests/
-
-pyproject.toml/

@@ -12,23 +12,18 @@ def tail(filename):
 def head(filename):
     if '_' in filename:
         return filename.rsplit('_', 1)[0].lower()
-    
     return None
 
 def allowed_uid (userids):
     return userids.isnumeric()
 
 def handle_files (request, save_dir):
-    # files = request.files.getlist('images')
-    # userIDs = request.form['textlist'].split(' ')
-    userIDs = request.form.getlist('uids')
+    userIDs = list(set(request.form.getlist('uids')))
     print(userIDs, type(userIDs),len(userIDs))
 
     if not (isinstance(userIDs, list) and len(userIDs) > 0):
         raise Exception('Invalid userids')
 
-    # if len(userIDs) != len(files):
-    #     raise Exception("Number of images and userIDs are not equal")
     
     data = {}
 
@@ -49,16 +44,6 @@ def handle_files (request, save_dir):
     print(data)
 
     return data,userIDs
-    # data = []
-
-    # for file, userID in zip(files, userIDs):
-    #     userID = str(userID)
-    #     if file and allowed_file(file.filename) and userID.isnumeric():
-    #         filename = secure_filename(file.filename)
-    #         file.save(os.path.join(save_dir, filename))
-    #         data.append((userID, os.path.join(save_dir, filename)))
-
-    # return ([d[0] for d in data], [d[1] for d in data])
 
 
 def empty_folder(folder_path):
@@ -69,7 +54,3 @@ def empty_folder(folder_path):
                 os.remove(file_path)
         except Exception as e:
             print(f"Error deleting file: {file_path} - {e}")
-
-
-def handle_err (e):
-    print(e)
