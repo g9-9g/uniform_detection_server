@@ -1,7 +1,7 @@
 [project]
 name = "uniform-detection-server"
 version = "1.0.0"
-description = "dsdfgdf"
+description = "uniform-detection-server"
 dependencies = [
     "flask","facenet_pytorch","ultralytics", "Pillow"
 ]

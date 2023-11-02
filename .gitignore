@@ -8,5 +8,7 @@ out/
 .env
 .vscode
 
+tests
+
 Pipfile
 Pipfile.lock

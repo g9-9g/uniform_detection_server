@@ -1,7 +1,0 @@
-# requirements
-# Usage: pip install -r requirements.txt
-
-flask
-Pillow>=9.5.0
-facenet_pytorch
-ultralytics
